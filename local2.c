@@ -50,7 +50,7 @@
 int socket_to_global = 0;
 struct wmediumd *ctx_to_pass;
 //int first_run = 1;
-u8 sta2_adx[ETH_ALEN] = {0x42, 0x00, 0x00, 0x00, 0x01, 0x00};
+u8 sta_adx[ETH_ALEN] = {0x42, 0x00, 0x00, 0x00, 0x01, 0x00};
 //int response = 0;
 
 static inline int div_round(int a, int b)
@@ -383,8 +383,6 @@ void *rx_cmd_frame(void *unused)
 	struct sockaddr_in server_addr_udp, client_addr_udp;
 	socklen_t addr_size_udp;
 	int n_udp;
-	
-	int machine_id = 2;
 
 	sockfd_udp = socket(AF_INET, SOCK_DGRAM, 0);
 	if (sockfd_udp < 0){
@@ -417,7 +415,7 @@ void *rx_cmd_frame(void *unused)
 		}
 		else
 		{	
-			if (broad_mex.machine_id_tobroadcast != machine_id || sta2_adx == broad_mex.hwaddr)
+			if (sta_adx == broad_mex.hwaddr)
 			{
 				printf("UDP message received\n");
 				list_for_each_entry(station_udp, &ctx->stations, list) 
@@ -452,8 +450,7 @@ mystruct_nlmsg serialize_message_tosend(u8 *hwaddr, unsigned int data_len, unsig
 				struct hwsim_tx_rate *tx_rates, u64 cookie, u32 freq, u8 *src, u8 *data)
 {
 	mystruct_nlmsg message;
-	
-	message.machine_id = 2;
+
 	memcpy(message.hwaddr_t, hwaddr, ETH_ALEN);
 	message.data_len_t = data_len;
 	message.flags_t = flags;
@@ -602,7 +599,7 @@ static int process_messages_cb(struct nl_msg *msg, void *arg)
 				
 			message = serialize_message_tosend(hwaddr, data_len, flags, tx_rates_len, tx_rates, cookie, freq, src, frame->data);
 			
-			if (memcmp(hwaddr, sta2_adx, ETH_ALEN) == 0)
+			if (memcmp(hwaddr, sta_adx, ETH_ALEN) == 0)
 			{
 				printf("Source addr: " MAC_FMT "\n", MAC_ARGS(src));
 				send_to_global(sock_w, tosend);
@@ -887,7 +884,7 @@ int main(int argc, char *argv[])
 
 	// Convert IPv4 and IPv6 addresses from text to binary
 	// form
-	if (inet_pton(AF_INET, "192.168.1.3", &serv_addr.sin_addr)
+	if (inet_pton(AF_INET, "192.168.236.91", &serv_addr.sin_addr)
 		<= 0) {
 		printf(
 			"\nInvalid address/ Address not supported \n");
