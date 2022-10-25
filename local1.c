@@ -50,7 +50,7 @@
 int socket_to_global = 0;
 struct wmediumd *ctx_to_pass;
 //int first_run = 1;
-u8 sta1_adx[ETH_ALEN] = {0x42, 0x00, 0x00, 0x00, 0x00, 0x00};
+u8 sta_adx[ETH_ALEN] = {0x42, 0x00, 0x00, 0x00, 0x00, 0x00};
 
 static inline int div_round(int a, int b)
 {
@@ -124,7 +124,7 @@ void rearm_timer(struct wmediumd *ctx)
 	int i;
 
 	bool set_min_expires = false;
-	//fprintf(stdout, "In rearm_timer function\n");
+	fprintf(stdout, "In rearm_timer function\n");
 
 	/*
 	 * Iterate over all the interfaces to find the next frame that
@@ -210,7 +210,7 @@ static struct station *get_station_by_addr(struct wmediumd *ctx, u8 *addr)
 
 void detect_mediums(struct wmediumd *ctx, struct station *src, struct station *dest) {
     int medium_id;
-    //fprintf(stdout, "In detect_mediums\n");
+    fprintf(stdout, "In detect_mediums\n");
     if (!ctx->enable_medium_detection){
         return;
     }
@@ -248,7 +248,7 @@ static int send_tx_info_frame_nl(struct wmediumd *ctx, struct frame *frame)
 	struct nl_sock *sock = ctx->sock;
 	struct nl_msg *msg;
 	int ret;
-	//printf("In send_tx_info_frame_nl function\n");
+	printf("In send_tx_info_frame_nl function\n");
 	msg = nlmsg_alloc();
 	if (!msg) {
 		w_logf(ctx, LOG_ERR, "Error allocating new message MSG!\n");
@@ -302,7 +302,7 @@ int send_cloned_frame_msg(struct wmediumd *ctx, struct station *dst,
 			  u8 *data, int data_len, int rate_idx, int signal,
 			  int freq)
 {
-	//printf("In send_cloned_frame_msg function\n");
+	printf("In send_cloned_frame_msg function\n");
 	struct nl_msg *msg;
 	struct nl_sock *sock = ctx->sock;
 	int ret;
@@ -382,8 +382,6 @@ void *rx_cmd_frame(void *unused)
 	struct sockaddr_in server_addr_udp, client_addr_udp;
 	socklen_t addr_size_udp;
 	int n_udp;
-	
-	int machine_id = 1;
 
 	sockfd_udp = socket(AF_INET, SOCK_DGRAM, 0);
 	if (sockfd_udp < 0){
@@ -417,9 +415,9 @@ void *rx_cmd_frame(void *unused)
 		else
 		{	
 			
-			if (broad_mex.machine_id_tobroadcast != machine_id || sta1_adx == broad_mex.hwaddr)
+			if (sta_adx == broad_mex.hwaddr)
 			{	
-				//printf("UDP message received\n");
+				printf("UDP message received\n");
 				list_for_each_entry(station_udp, &ctx->stations, list) 
 				{
 					if (memcmp(broad_mex.hwaddr, station_udp->hwaddr, ETH_ALEN) == 0)
@@ -451,8 +449,7 @@ mystruct_nlmsg serialize_message_tosend(u8 *hwaddr, unsigned int data_len, unsig
 				struct hwsim_tx_rate *tx_rates, u64 cookie, u32 freq, u8 *src, u8 *data)
 {
 	mystruct_nlmsg message;
-	
-	message.machine_id = 1;
+
 	memcpy(message.hwaddr_t, hwaddr, ETH_ALEN);
 	message.data_len_t = data_len;
 	message.flags_t = flags;
@@ -494,7 +491,7 @@ int recv_from_global(int sock_w, struct wmediumd *ctx, struct frame *frame)
 	}
 	else
 	{	
-		//printf("Tx info received from global wmediumd\n");
+		printf("Tx info received from global wmediumd\n");
 		frame->cookie = server_reply.cookie_tosend;
 		frame->flags = server_reply.flags_tosend;
 		frame->tx_rates_count = server_reply.tx_rates_count_tosend;
@@ -522,7 +519,7 @@ static int process_messages_cb(struct nl_msg *msg, void *arg)
 	/* generic netlink header*/
 	struct genlmsghdr *gnlh = nlmsg_data(nlh);
 	
-	//fprintf(stdout, "In process_messages_cb function\n");
+	fprintf(stdout, "In process_messages_cb function\n");
 	
 	mystruct_nlmsg message;
 	mystruct_nlmsg* tosend;
@@ -602,7 +599,7 @@ static int process_messages_cb(struct nl_msg *msg, void *arg)
 				
 			message = serialize_message_tosend(hwaddr, data_len, flags, tx_rates_len, tx_rates, cookie, freq, src, frame->data);
 			
-			if (memcmp(hwaddr, sta1_adx, ETH_ALEN) == 0)
+			if (memcmp(hwaddr, sta_adx, ETH_ALEN) == 0)
 			{
 				printf("Source addr: " MAC_FMT "\n", MAC_ARGS(src));
 				send_to_global(sock_w, tosend);
@@ -625,7 +622,7 @@ int send_register_msg(struct wmediumd *ctx)
 	struct nl_sock *sock = ctx->sock;
 	struct nl_msg *msg;
 	int ret;
-	//fprintf(stdout, "Registering HWSIM_CMD_REGISTER\n");
+	fprintf(stdout, "Registering HWSIM_CMD_REGISTER\n");
 	msg = nlmsg_alloc();
 	if (!msg) {
 		w_logf(ctx, LOG_ERR, "Error allocating new message MSG!\n");
@@ -658,7 +655,7 @@ out:
 static void sock_event_cb(int fd, short what, void *data)
 {
 	struct wmediumd *ctx = data;
-	//fprintf(stdout, "In sock_event_cb function\n");
+	fprintf(stdout, "In sock_event_cb function\n");
 	nl_recvmsgs_default(ctx->sock);
 }
 
@@ -669,7 +666,7 @@ static int init_netlink(struct wmediumd *ctx)
 {
 	struct nl_sock *sock;
 	int ret;
-	//fprintf(stdout, "In init_netlink function\n");
+	fprintf(stdout, "In init_netlink function\n");
 	ctx->cb = nl_cb_alloc(NL_CB_CUSTOM);
 	if (!ctx->cb) {
 		w_logf(ctx, LOG_ERR, "Error allocating netlink callbacks\n");
@@ -732,7 +729,7 @@ static void timer_cb(int fd, short what, void *data)
 {
 	struct wmediumd *ctx = data;
 	uint64_t u;
-	//fprintf(stdout, "In timer_cb\n");
+	fprintf(stdout, "In timer_cb\n");
 	pthread_rwlock_rdlock(&snr_lock);
 	read(fd, &u, sizeof(u));
 	ctx->move_stations(ctx);
@@ -886,7 +883,7 @@ int main(int argc, char *argv[])
 
 	// Convert IPv4 and IPv6 addresses from text to binary
 	// form
-	if (inet_pton(AF_INET, "192.168.1.3", &serv_addr.sin_addr)
+	if (inet_pton(AF_INET, "192.168.236.91", &serv_addr.sin_addr)
 		<= 0) {
 		printf(
 			"\nInvalid address/ Address not supported \n");
