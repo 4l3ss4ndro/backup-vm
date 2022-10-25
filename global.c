@@ -490,12 +490,11 @@ void queue_frame(struct wmediumd *ctx, struct station *station,
 	rearm_timer(ctx);
 }
 
-int send_to_broadcast(int machine_id, int sockfd_udp, int data_len, int rate_idx, int signal,
+int send_to_broadcast(int sockfd_udp, int data_len, int rate_idx, int signal,
 			  int freq, u8 *hwaddr, u8 *data)
 {
 	mystruct_tobroadcast broad_mex;
-	printf("In sendtobroadcast");
-	broad_mex.machine_id_tobroadcast = machine_id;
+	printf("In sendtobroadcast\n");
 	broad_mex.data_len_tobroadcast = data_len;
 	broad_mex.rate_idx_tobroadcast = rate_idx;
 	broad_mex.signal_tobroadcast = signal;
@@ -585,7 +584,7 @@ void deliver_frame(struct wmediumd *ctx, struct frame *frame)
 					continue;
 				}
 				
-				send_to_broadcast(frame->machine_id, sockfd_udp, frame->data_len, rate_idx, signall,
+				send_to_broadcast(sockfd_udp, frame->data_len, rate_idx, signall,
 			  			  frame->freq, station->hwaddr, frame->data);
 				
 			} else if (memcmp(dest, station->addr, ETH_ALEN) == 0) {
@@ -595,7 +594,7 @@ void deliver_frame(struct wmediumd *ctx, struct frame *frame)
 					continue;
 				rate_idx = frame->tx_rates[0].idx;
 				
-				send_to_broadcast(frame->machine_id, sockfd_udp, frame->data_len, rate_idx, frame->signal,
+				send_to_broadcast(sockfd_udp, frame->data_len, rate_idx, frame->signal,
 			  			  frame->freq, station->hwaddr, frame->data);
   			}
 		}
@@ -705,7 +704,6 @@ static int process_messages_cb(void *arg, mystruct_nlmsg torecv_t)
 	
 	if (1) {
 		pthread_rwlock_rdlock(&snr_lock);
-		fprintf(stdout, "HWSIM_CMD_FRAME received\n");
 		if (1) {
 			//fprintf(stdout, "Attributes got\n");
 			u8 *hwaddr = (u8 *)malloc(sizeof(u8)*ETH_ALEN);
@@ -727,9 +725,7 @@ static int process_messages_cb(void *arg, mystruct_nlmsg torecv_t)
 			memcpy(src, torecv_t.src_t, ETH_ALEN);
 			u8 *data = (u8 *)malloc(sizeof(u8)*10000);
 			memcpy(data, torecv_t.data_t, sizeof(torecv_t.data_t));
-			
-			printf("Socket data received\n");
-			
+
 			//printf("Sender sta " MAC_FMT "\n", MAC_ARGS(src));
 
 			sender = get_station_by_addr(ctx, src);
@@ -747,7 +743,6 @@ static int process_messages_cb(void *arg, mystruct_nlmsg torecv_t)
 				goto out;
 
 			memcpy(frame->data, data, data_len);
-			frame->machine_id = torecv_t.machine_id;
 			frame->data_len = data_len;
 			frame->flags = flags;
 			frame->cookie = cookie;
@@ -765,8 +760,8 @@ static int process_messages_cb(void *arg, mystruct_nlmsg torecv_t)
 out:
 	pthread_rwlock_unlock(&snr_lock);
 	return 0;
-	
-	}	
+
+	}
 	return 0;
 }
 
@@ -951,7 +946,7 @@ int main(int argc, char *argv[])
 	struct sockaddr_in address2;
 	int addrlen2 = sizeof(address2);
 	int *new_sock2;
-	char *ip_udp = "192.168.1.255";
+	char *ip_udp = "192.168.237.255";
 	int port_udp = 8080;
 	int yes = 1;
 
@@ -1215,8 +1210,10 @@ int main(int argc, char *argv[])
 	free(ctx.cb);
 	free(ctx.intf);
 	free(ctx.per_matrix);
-	pthread_join( sniffer_thread , NULL);
+	pthread_join(sniffer_thread, NULL);
+	pthread_join(sniffer_thread2, NULL);
 	close(new_socket);
+	close(new_socket2);
 	shutdown(server_tcp, SHUT_RDWR);
 	
 	return EXIT_SUCCESS;
